@@ -83,24 +83,24 @@ MICS Course 252 Fall 2024 (Kristy Westphal)
 
 
 \section{Reverse engineering of executables}\label{log-analysis}
-Two files are provided to be subjected to analysis
+Two files are provided to be subjected to analysis.
 
 \section{'file' analysis}
 Linux has a simple utility for checking a file' type by its content, see results in Figure \ref{fig:fileAnalysis}
 \begin{figure}[!htp] % Single column :figure	
 	\centering
-	\includegraphics[width=\linewidth]{file_analysis.png}
-	\caption{Output from using 'file' in Linux on 'random\_file' and 'random\_file1'}
+	\includegraphics[width=0.7\linewidth]{file_analysis.png}
+	\caption{Output from using 'file' in Linux on 'random\_file' and 'random\_file2'}
 	\label{fig:fileAnalysis}
 \end{figure}
 
-\subsection{Results} The 'PE32' and 'PE32+' indicate the file format is 'Portable Executable' (the '+' indicating version for 64bit memory structure)\cite{PE32Wikipedia}. The PE32 standard includes some headers in the file so the Windows operating can execute the files, either as a stand alone .exe files or as part of other programs or things running on the OS as .dll etc.\footnote{Windows file extensions for PE's include: .acm, .ax, .cpl, .dll, .drv, .efi, .exe, .mui, .ocx, .scr, .sys, .tsp, .mun\cite{PE32Wikipedia}} \\
-I.e. the files could contain many functions for something running on a Windows OS. The PE file (ELF files for Linux) contain information of how the program should be laid out in memory on the OS.
+\subsection{'file' Results} The 'PE32' and 'PE32+' indicate the file format is 'Portable Executable' (the '+' indicating version for 64bit memory structure)\cite{PE32Wikipedia}. The PE32 standard includes some headers in the file so the Windows operating can execute the files, either as a stand alone .exe files or as part of other programs or things running on the OS as .dll etc.\footnote{Windows file extensions for PE's include: .acm, .ax, .cpl, .dll, .drv, .efi, .exe, .mui, .ocx, .scr, .sys, .tsp, .mun\cite{PE32Wikipedia}} \\
+I.e. the files could contain many functions for something running on a Windows OS. The PE file (ELF files for Linux) contain headers with information of how the program should be laid out in memory on the OS.
 
-\section{'Virus Total'}
-I also threw the files into virus "Virus Total"\cite{VirusTotal} which both subjects the files to signature scanning and provides details and compares it to the contents to other uploads of the file (looks like others have also uploaded to Virus Total).
+\section{'Virus Total'}\label{sec:ViruTotal}
+I also threw the files into virus "Virus Total"\cite{VirusTotal} which both subjects the files to signature scanning and provides details and compares it to the contents to other uploads of the file.
 
-\subsection{Results} Virus totals findings are listed in Appendix \ref{app:VirusTotal}, Figures \ref{fig:VirusTotalRandomFile} and \ref{fig:VirusTotalRandomFile2}. Results include various file SHA hashings, file formats etc. Furthermore, the is a 'Names' section where previous uploads of the same file listed, apart from other submissions of 'random file' Virus Total finds the following file names:
+\subsection{Virus Total Results} Virus totals findings are listed in Appendix \ref{app:VirusTotal}, Figures \ref{fig:VirusTotalRandomFile} and \ref{fig:VirusTotalRandomFile2}. Results include various file SHA hashings, file formats etc. Furthermore, the is a 'Names' section where previous uploads of the same file listed, apart from other submissions of 'random file' Virus Total\footnote{Looks like others have had the same idea and checked 'random\_files'} finds the following file names:
 
 \begin{itemize}
 	\item random\_file = CNMSE.exe, a Canon printer network management software
@@ -116,7 +116,7 @@ Ghidra works as follows:
 
 \begin{enumerate}
 	\item The Binary is 'disassembled', the machine code is read from the binary file
-	\item Assembly language code is constructed from the machine code and how data moved around memory. The Assembly language is 'somewhat humanly readable' including comments, readable strings etc. and it is possible to read how data is manipulated by the processor and stored in memory it could look like:  
+	\item Assembly language code is constructed from the machine code and how data is moved around memory. The Assembly language is 'somewhat humanly readable' including comments, readable strings etc. and it is possible to read how data is manipulated by the processor and stored in memory it could look like:  
 	\begin{verbatim}
 		MOV AL, 61h       ; Load AL with 97 decimal (61 hex)
 	\end{verbatim} 
@@ -130,7 +130,7 @@ Ghidra works as follows:
 \end{enumerate}
 
 \subsection{Ghidra Treasure Hunt}
-Ghidra Chewed away on the files and came up with a de-compilation solution, see example in Figure \ref{fig:Ghidra}
+Ghidra chewed away on the files and came up with a de-compilation solution, see example in Figure \ref{fig:Ghidra}
 
 \begin{figure}[!htp] % Single column :figure	
 	\centering
@@ -150,14 +150,14 @@ To analyze the findings I fist tried to find the entry point function in standar
 	int main(int argc, char **argv, char **env);
 \end{verbatim} 
 
-Looking for functions structured like this was largely un-sucessful (I found multiple functions which fit the schema). Ghidra shows what functions are exposed by the Executable for other code to use as an API, here there is an 'entry' function which first checks some security cookie and then runs a function that "does a bunch of stuff" See a grapical tree representation in Appendix \ref{app:GhidraRandomFile}, Figure \ref{fig:GhidraRandomFileTree}. Fuguring out what really goes on is subject to a deeper analysis including subject matter experts within the specific type of software (hypothesis being that it is a Canon printer driver). \\
+Looking for functions structured like this was largely un-sucessful (I found multiple functions which fit the schema). Ghidra shows what functions are exposed by the Executable for other code to use as an API, here there is an 'entry' function which first checks some security cookie and then runs a function that "does a bunch of stuff" See a graphical tree representation in Appendix \ref{app:GhidraRandomFile}, Figure \ref{fig:GhidraRandomFileTree}. Figuring out what really goes on is subject to a deeper analysis including subject matter experts within the specific type of software (hypothesis from Section \ref{sec:ViruTotal} above being that it is a Canon printer driver). \\
 Another way to analyze the bunch of de-compiled code is to look for strings, in this case for 2 purposes:
 \begin{enumerate}
 	\item Search for the 'Canon' name or 'print*' to confirm that the random file is a Canon printer software
-	\item Search for malware signatures. Trojans and malware that connects to a C2 server needs to know where to 'phone home' i.e. they need some hard coded URL's or a way to generate these (if they are trying o obfuscate). An example is the 'SolarWinds' attack, in which C2 url's were obfuscated using a custom hash function to hide from code decompilation. So I will look for suspicious URL's and Hash codes. 
+	\item Search for traces of malware. Trojans and malware that connects to a C2 server needs to know where to 'phone home' i.e. they need some hard coded URL's or a way to generate these (if they are trying o obfuscate). An example is the 'SolarWinds' attack, in which C2 url's were obfuscated using a custom hash function to hide from code decompilation\cite{MandiantSW}. So I will look for suspicious URL's and Hash codes. 
 \end{enumerate}
 
-\subsection{Results, random\_file}
+\subsection{Ghidra Results, random\_file}
 Searching for strings confirmed that the random\_file most likely is a Canon printer software, see Figure \ref{fig:GhidraRandomFileString}. I did not find any suspicious hash codes the files authenticity can be verified against the vendors original file by comparing hash codes.
 
 \begin{figure}[!htp] % Single column :figure	
@@ -167,14 +167,17 @@ Searching for strings confirmed that the random\_file most likely is a Canon pri
 	\label{fig:GhidraRandomFileString}
 \end{figure}
 
-\subsection{Results, random\_file2}
-Using the same strategy as above, looking at strings reveal that the file is likely containing a Windows version of the AFL Fuzzing test software. The program flow tree is listed in Appendix \ref{app:GhidraRandomFile2}, Figure \ref{fig:GhidraRandomFile2Tree}. Following the program flow, there are a lot of conditionals that exit the program if conditions are not correct, this is probably reflected in the 'PROGRAM ABORT' strings in Figure \ref{fig:GhidraRandomFileString}.   
+\subsection{Ghidra Results, random\_file2}
+Using the same strategy as above, looking at strings reveal that the file is likely containing a Windows version of the AFL Fuzzing test software. The program flow tree is listed in Appendix \ref{app:GhidraRandomFile2}, Figure \ref{fig:GhidraRandomFile2Tree}. Following the program flow, there are some conditionals that exit the program if conditions are not correct, this is probably reflected in the 'PROGRAM ABORT' strings in Figure \ref{fig:GhidraRandomFileString}.   
 \begin{figure}[!htp] % Single column :figure	
 	\centering
 	\includegraphics[width=\linewidth]{RandomFile2StringSearch.png}
 	\caption{String search for strings in the whole de-compiled code, note the afl\_analyse and WinAFL strings indicating the file is a Windows version of the AFL Fuzzing test software}
 	\label{fig:GhidraRandomFile2StringSearch}
 \end{figure}
+
+\section{Conclusion}
+The files were investigated using various tools: The preinstalled 'file' tool, the online 'Virus Total' and NSA's open source 'Ghidra' tool. The files origins were investigated and identified, further steps would include contacting the original providers of the software for comparison to ensure that no malicious code is hidden in the files (this is of course assuming that there is no malware in the original code either..).  
 
 %----------------------------------------------------------------------------------------
 %	 REFERENCES
@@ -226,6 +229,13 @@ Using the same strategy as above, looking at strings reveal that the file is lik
 	\includegraphics[width=0.8\linewidth]{Random_file2Tree.png}
 	\caption{'random\_file2' 'FUN\_140004618(void)' Function as entry point (obviously Ghidra picked the name..)}
 	\label{fig:GhidraRandomFile2Tree}
+\end{figure}
+
+\begin{figure}[!htp] % Single column :figure	
+	\centering
+	\includegraphics[width=0.8\linewidth]{GhidrafastFail.png}
+	\caption{'random\_file2' 'FUN\_140004618(void)' Function a portion of the conditionals execute the 'fastFail' function when they resolve to false}
+	\label{fig:GhidraFastFail}
 \end{figure}
 \end{appendices}
 \end{document}
