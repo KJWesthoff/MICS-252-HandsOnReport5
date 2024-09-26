@@ -85,7 +85,7 @@ MICS Course 252 Fall 2024 (Kristy Westphal)
 \section{Reverse engineering of executables}\label{log-analysis}
 Two files are provided to be subjected to analysis
 
-\subsection{'file' analysis}
+\section{'file' analysis}
 Linux has a simple utility for checking a file' type by its content, see results in Figure \ref{fig:fileAnalysis}
 \begin{figure}[!htp] % Single column :figure	
 	\centering
@@ -94,20 +94,80 @@ Linux has a simple utility for checking a file' type by its content, see results
 	\label{fig:fileAnalysis}
 \end{figure}
 
-\subsubsection{Results} The 'PE32' and 'PE32+' indicate the file format is 'Portable Executable' (the '+' indicating version for 64bit memory structure)\cite{PE32Wikipedia}. The PE32 standard includes some headers in the file so the Windows operating can execute the files, either as a stand alone .exe files or as part of other programs or things running on the OS as .dll etc.\footnote{Windows file extensions for PE's include: .acm, .ax, .cpl, .dll, .drv, .efi, .exe, .mui, .ocx, .scr, .sys, .tsp, .mun\cite{PE32Wikipedia}} \\
+\subsection{Results} The 'PE32' and 'PE32+' indicate the file format is 'Portable Executable' (the '+' indicating version for 64bit memory structure)\cite{PE32Wikipedia}. The PE32 standard includes some headers in the file so the Windows operating can execute the files, either as a stand alone .exe files or as part of other programs or things running on the OS as .dll etc.\footnote{Windows file extensions for PE's include: .acm, .ax, .cpl, .dll, .drv, .efi, .exe, .mui, .ocx, .scr, .sys, .tsp, .mun\cite{PE32Wikipedia}} \\
 I.e. the files could contain many functions for something running on a Windows OS. The PE file (ELF files for Linux) contain information of how the program should be laid out in memory on the OS.
 
-\subsection{Reverse engineering, static analysis using Ghidra}
-Static reverse engineering includes de-compiling the executables, looking at the code, but not running it. I used 'Ghidra'\cite{Ghidra } for the de-compilation. 
+\section{'Virus Total'}
+I also threw the files into virus "Virus Total"\cite{VirusTotal} which both subjects the files to signature scanning and provides details and compares it to the contents to other uploads of the file (looks like others have also uploaded to Virus Total).
+
+\subsection{Results} Virus totals findings are listed in Appendix \ref{app:VirusTotal}, Figures \ref{fig:VirusTotalRandomFile} and \ref{fig:VirusTotalRandomFile2}. Results include various file SHA hashings, file formats etc. Furthermore, the is a 'Names' section where previous uploads of the same file listed, apart from other submissions of 'random file' Virus Total finds the following file names:
+
+\begin{itemize}
+	\item random\_file = CNMSE.exe, a Canon printer network management software
+	\item random\_file2 = alfi\_analyse.exe, probably something with "Advanced Logging File Infrastructure"
+\end{itemize}
+
+To confirm if the above findings are correct, next step is trying to reverse engineer the files.
+
+\section{Reverse engineering using Ghidra}
+Static reverse engineering includes de-compiling the executables, looking at the code, but not running it. I used 'Ghidra'\cite{Ghidra} for the analysis. 
+Ghidra is a software reverse engineering (SRE) tool created and maintained by the NSA\cite{GhidraGithub} made publicly in 2019\footnote{The existence of Ghidra was apparently published already in 2017 as part of a WikiLeaks leak\cite{Vault7leak}} 
+Ghidra works as follows:
+
+\begin{enumerate}
+	\item The Binary is 'disassembled', the machine code is read from the binary file
+	\item Assembly language code is constructed from the machine code and how data moved around memory. The Assembly language is 'somewhat humanly readable' including comments, readable strings etc. and it is possible to read how data is manipulated by the processor and stored in memory it could look like:  
+	\begin{verbatim}
+		MOV AL, 61h       ; Load AL with 97 decimal (61 hex)
+	\end{verbatim} 
+	
+	\item Based on the Assembly code, Ghidra constructs C-like code which is more humanly 'interpret-able': \begin{itemize}
+		\item It splits parts of the code execution into functions
+		\item Puts data into variables.
+		\item Provides information on which part of the code is imported from other code (Windows .dll's, C <headers.h> etc.)    
+		\item It can even draw a graph on how the various functions are called when the program executes
+	\end{itemize}
+\end{enumerate}
+
+\subsection{Ghidra Treasure Hunt}
+Ghidra Chewed away on the files and came up with a de-compilation solution, see example in Figure \ref{fig:Ghidra}
+
+\begin{figure}[!htp] % Single column :figure	
+	\centering
+	\includegraphics[width=\linewidth]{GhidraRandomFile.png}
+	\caption{Ghidra main windows, 'navigation' to the left (see Functions list) Assembly Code in the middle and C code representation to the right, funciton inputs and outputs in the bottom}
+	\label{fig:Ghidra}
+\end{figure}
 
 
 
+To analyze the findings I fist tried to find the entry point function in standard C this is defined as:
+\begin{verbatim}
+	int main(void);
+	int main();
+	int main(int argc, char **argv);
+	int main(int argc, char *argv[]);
+	int main(int argc, char **argv, char **env);
+\end{verbatim} 
 
-% \begin{figure}[!htp] % Single column figure
-% 	\centering
-% 	\includegraphics[width=\linewidth]{log1.png}
-% 	\caption{Snippet from "log file 1.txt"}	\label{fig:log1}
-% \end{figure}
+Looking for functions structured like this was largely un-sucessful (I found multiple functions which fit the schema). Ghidra shows what functions are exposed by the Executable for other code to use as an API, here there is an 'entry' function which first checks some security cookie and then runs a function that "does a bunch of stuff" See a grapical tree representation in Appendix \ref{app:GhidraRandomFile}, Figure \ref{fig:GhidraRandomFileTree}. Fuguring out what really goes on is subject to a deeper analysis including subject matter experts within the specific type of software (hypothesis being that it is a Canon printer driver). \\
+Another way to analyze the bunch of de-compiled code is to look for strings, in this case for 2 purposes:
+\begin{enumerate}
+	\item Search for the 'Canon' name or 'print*' to confirm that the random file is a Canon printer software
+	\item Search for malware signatures. Trojans and malware that connects to a C2 server needs to know where to 'phone home' i.e. they need some hard coded URL's or a way to generate these (if they are trying o obfuscate). An example is the 'SolarWinds' attack, in which C2 url's were obfuscated using a custom hash function to hide from code decompilation. So I will look for suspicious URL's and Hash codes. 
+\end{enumerate}
+
+\subsection{Results random\_file}
+Searching for strings confirmed that the random\_file most likely is a Canon printer software, see Figure \ref{fig:GhidraRandomFileString}. I did not find any suspicious hash codes the files authenticity can be verified against the vendors original file by comparing hash codes.
+
+\begin{figure}[!htp] % Single column :figure	
+	\centering
+	\includegraphics[width=\linewidth]{RandomFileStringSearch.png}
+	\caption{String search for strings in the whole de-compiled code, note the vendor name 'Canon' and the CNMSE.EXE string}
+	\label{fig:GhidraRandomFileString}
+\end{figure}
+
+
 
 
 
@@ -131,13 +191,29 @@ Static reverse engineering includes de-compiling the executables, looking at the
 \clearpage
 \chapter{Appendices}
 \begin{appendices}
-% \section{}\label{app:}	
-% \begin{figure}[!htp] % Single column figure
-% 	\centering
-% 	\includegraphics[width=0.7\linewidth]{GPT1.png}
-% 	\caption{ChatGPT analysis of logs before the large chunk of 'SERVER' logs}	\label{fig:GPT1.png}
-% \end{figure}
 
+\section{Virus Total Results}\label{app:VirusTotal}
+\begin{figure}[!htp] % Single column :figure	
+	\centering
+	\includegraphics[width=\linewidth]{VirusTotalRandomFile.png}
+	\caption{Virus Total details on 'random\_file'}
+	\label{fig:VirusTotalRandomFile}
+\end{figure}
+
+\begin{figure}[!htp] % Single column :figure	
+	\centering
+	\includegraphics[width=\linewidth]{VirusTotalRandomFile2.png}
+	\caption{Virus Total details on 'random\_file2'}
+	\label{fig:VirusTotalRandomFile2}
+\end{figure}
+\clearpage
+\section{Ghidra Analyses of 'random\_file'}\label{app:GhidraRandomFile}	
+\begin{figure}[!htp] % Single column :figure	
+	\centering
+	\includegraphics[width=0.8\linewidth]{Random_fileTree.png}
+	\caption{'random\_file' scrt\_common\_main\_seh(void) Function as entry point}
+	\label{fig:GhidraRandomFileTree}
+\end{figure}
 
 \end{appendices}
 \end{document}
