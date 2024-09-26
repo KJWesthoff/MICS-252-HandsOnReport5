@@ -104,7 +104,7 @@ I also threw the files into virus "Virus Total"\cite{VirusTotal} which both subj
 
 \begin{itemize}
 	\item random\_file = CNMSE.exe, a Canon printer network management software
-	\item random\_file2 = alfi\_analyse.exe, probably something with "Advanced Logging File Infrastructure"
+	\item random\_file2 = alfi\_analyse.exe, not much on google regarding this file, ChatGPT mentions the AFL (American Fuzzing Lop)\cite{AFLWiki}, a tool for software testing by sending unusual inputs to a program. 
 \end{itemize}
 
 To confirm if the above findings are correct, next step is trying to reverse engineer the files.
@@ -157,7 +157,7 @@ Another way to analyze the bunch of de-compiled code is to look for strings, in 
 	\item Search for malware signatures. Trojans and malware that connects to a C2 server needs to know where to 'phone home' i.e. they need some hard coded URL's or a way to generate these (if they are trying o obfuscate). An example is the 'SolarWinds' attack, in which C2 url's were obfuscated using a custom hash function to hide from code decompilation. So I will look for suspicious URL's and Hash codes. 
 \end{enumerate}
 
-\subsection{Results random\_file}
+\subsection{Results, random\_file}
 Searching for strings confirmed that the random\_file most likely is a Canon printer software, see Figure \ref{fig:GhidraRandomFileString}. I did not find any suspicious hash codes the files authenticity can be verified against the vendors original file by comparing hash codes.
 
 \begin{figure}[!htp] % Single column :figure	
@@ -167,9 +167,14 @@ Searching for strings confirmed that the random\_file most likely is a Canon pri
 	\label{fig:GhidraRandomFileString}
 \end{figure}
 
-
-
-
+\subsection{Results, random\_file2}
+Using the same strategy as above, looking at strings reveal that the file is likely containing a Windows version of the AFL Fuzzing test software. The program flow tree is listed in Appendix \ref{app:GhidraRandomFile2}, Figure \ref{fig:GhidraRandomFile2Tree}. Following the program flow, there are a lot of conditionals that exit the program if conditions are not correct, this is probably reflected in the 'PROGRAM ABORT' strings in Figure \ref{fig:GhidraRandomFileString}.   
+\begin{figure}[!htp] % Single column :figure	
+	\centering
+	\includegraphics[width=\linewidth]{RandomFile2StringSearch.png}
+	\caption{String search for strings in the whole de-compiled code, note the afl\_analyse and WinAFL strings indicating the file is a Windows version of the AFL Fuzzing test software}
+	\label{fig:GhidraRandomFile2StringSearch}
+\end{figure}
 
 %----------------------------------------------------------------------------------------
 %	 REFERENCES
@@ -214,6 +219,13 @@ Searching for strings confirmed that the random\_file most likely is a Canon pri
 	\caption{'random\_file' scrt\_common\_main\_seh(void) Function as entry point}
 	\label{fig:GhidraRandomFileTree}
 \end{figure}
-
+\clearpage
+\section{Ghidra Analyses of 'random\_file2'}\label{app:GhidraRandomFile2}	
+\begin{figure}[!htp] % Single column :figure	
+	\centering
+	\includegraphics[width=0.8\linewidth]{Random_file2Tree.png}
+	\caption{'random\_file2' 'FUN\_140004618(void)' Function as entry point (obviously Ghidra picked the name..)}
+	\label{fig:GhidraRandomFile2Tree}
+\end{figure}
 \end{appendices}
 \end{document}
