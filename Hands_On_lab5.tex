@@ -83,7 +83,7 @@ MICS Course 252 Fall 2024 (Kristy Westphal)
 
 
 \section{Reverse engineering of executables}\label{log-analysis}
-Two files are provided to be subjected to analysis.
+Two files are provided to be analyzed, trying to figure out what they do and if they are malicious.
 
 \section{'file' analysis}
 Linux has a simple utility for checking a file' type by its content, see results in Figure \ref{fig:fileAnalysis}
@@ -150,7 +150,7 @@ To analyze the findings I fist tried to find the entry point function in standar
 	int main(int argc, char **argv, char **env);
 \end{verbatim} 
 
-Looking for functions structured like this was largely un-sucessful (I found multiple functions which fit the schema). Ghidra shows what functions are exposed by the Executable for other code to use as an API, here there is an 'entry' function which first checks some security cookie and then runs a function that "does a bunch of stuff" See a graphical tree representation in Appendix \ref{app:GhidraRandomFile}, Figure \ref{fig:GhidraRandomFileTree}. Figuring out what really goes on is subject to a deeper analysis including subject matter experts within the specific type of software (hypothesis from Section \ref{sec:ViruTotal} above being that it is a Canon printer driver). \\
+Looking for functions structured like this was largely un-sucessful (I found multiple functions which fit the schema). Ghidra shows what functions are exposed by the executable for other code to use as an API under "Exports", left side. Here there is an 'entry' function which first checks some security cookie and then runs a function that "does a bunch of stuff" See a graphical tree representation in Appendix \ref{app:GhidraRandomFile}, Figure \ref{fig:GhidraRandomFileTree}. Figuring out what really goes on is subject to a deeper analysis including subject matter experts within the specific type of software (hypothesis from Section \ref{sec:ViruTotal} above being that it is a Canon printer driver). \\
 Another way to analyze the bunch of de-compiled code is to look for strings, in this case for 2 purposes:
 \begin{enumerate}
 	\item Search for the 'Canon' name or 'print*' to confirm that the random file is a Canon printer software
